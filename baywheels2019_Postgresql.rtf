@@ -1,0 +1,108 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2761
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 \'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+SELECT *\
+FROM baywheels_2019\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+--Wrangling and Preparing the Data \
+\
+--1/ Removing Unwanted Column : "rental_access_method" "bike_share_for_all_trip" \
+\
+--2/ Checking for Duplicates : nothing \
+SELECT COUNT(*) AS bike_id, start_time, end_time, start_station_id, end_station_id, user_type\
+FROM baywheels_2019\
+GROUP BY bike_id, start_time, end_time, start_station_id, end_station_id, user_type\
+HAVING  COUNT(*) > 1\
+\
+-- 3/ Removing Blank Values: \
+SELECT bike_id, start_time, end_time, start_station_id, end_station_id, user_type\
+FROM baywheels_2019\
+WHERE (bike_id, start_time, end_time, start_station_id, end_station_id, user_type) IS NOT NULL\
+\
+--4/ There are 2 407 259 trips \
+SELECT COUNT(*)\
+FROM baywheels_2019\
+WHERE (bike_id, start_time, end_time, start_station_id, end_station_id, user_type) IS NOT NULL\
+\
+\
+--5/ There are 10 766 bikes \
+SELECT COUNT (DISTINCT bike_id)\
+FROM baywheels_2019\
+WHERE (bike_id, start_time, end_time, start_station_id, end_station_id, user_type) IS NOT NULL\
+\
+--6/ What is the earliest start time and latest end time for a ride?\
+\
+--The latest end time for a ride is 2020-01-01 08:58:51.25\
+SELECT MAX(end_time)\
+FROM baywheels_2019\
+WHERE (bike_id, start_time, end_time, start_station_id, end_station_id, user_type) IS NOT NULL\
+\
+--The earliest start time for a ride is 2019-01-01 00:07:10.576\
+SELECT MIN(start_time)\
+FROM baywheels_2019\
+WHERE (bike_id, start_time, end_time, start_station_id, end_station_id, user_type) IS NOT NULL\
+\
+\
+\
+\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
+\
+--Analyzing the Data\
+\
+-- 1/ Only 59066 rides had the same start and end station. \
+   \
+\
+SELECT start_station_id, end_station_id, user_type\
+FROM baywheels_2019\
+WHERE start_station_id=end_station_id\
+AND (start_station_id, end_station_id, user_type) IS NOT NULL\
+\
+\
+--2/ Percentage of Customer vs Subsciber Member\
+\
+SELECT\
+    user_type AS membership_type,\
+    COUNT(user_type) AS total_ride,\
+    SUM(COUNT(user_type)) OVER () AS total_membership,\
+    CONCAT(CAST(COUNT(user_type) * 100.0 / SUM(COUNT(user_type)) OVER () AS DECIMAL(10,2)), '%') AS membership_percentage\
+FROM baywheels_2019\
+WHERE (bike_id, start_time, end_time, start_station_id, end_station_id, user_type) IS NOT NULL\
+GROUP BY user_type;\
+\
+\
+--3/ Percentage of Rides per Month\
+\
+SELECT\
+    user_type AS membership_type,\
+    EXTRACT(MONTH FROM start_time) AS month,\
+    COUNT(DISTINCT CONCAT(bike_id, start_time, end_time, start_station_id, end_station_id)) AS membership_rides,\
+    COUNT(DISTINCT CONCAT(bike_id, start_time, end_time, start_station_id, end_station_id)) * 100.0 / SUM(COUNT(DISTINCT CONCAT(bike_id, start_time, end_time, start_station_id, end_station_id))) OVER (PARTITION BY EXTRACT(MONTH FROM start_time)) AS membership_percentage\
+FROM baywheels_2019\
+WHERE (bike_id, start_time, end_time, start_station_id, end_station_id, user_type) IS NOT NULL\
+GROUP BY user_type, month\
+ORDER BY month;\
+\
+\
+\
+--4/ Number of Rides by Days \
+SELECT\
+    user_type AS membership_type,\
+    TO_CHAR(start_time, 'Day') AS day_of_week,\
+    COUNT(DISTINCT CONCAT(bike_id, start_time, end_time, start_station_id, end_station_id)) AS membership_rides\
+FROM baywheels_2019\
+WHERE (bike_id, start_time, end_time, start_station_id, end_station_id, user_type) IS NOT NULL\
+GROUP BY user_type, day_of_week\
+ORDER BY day_of_week, user_type;\
+\
+\
+}
